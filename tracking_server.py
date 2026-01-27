@@ -1,25 +1,33 @@
 #!/usr/bin/env python3
 """
-SERVIDOR DE TRACKING DE EMAILS - RAILWAY.APP
+SERVIDOR DE TRACKING DE EMAILS - RENDER.COM
 - Registra aperturas de email mediante pixel 1x1
-- Guarda: ID, timestamp, IP, user-agent en SQLite
-- Puerto configurable para Railway
-- Persistencia en base de datos
+- Guarda: ID, timestamp, IP, user-agent en PostgreSQL o SQLite
+- Puerto configurable para Render
+- Persistencia PERMANENTE en PostgreSQL
 """
 
 from flask import Flask, request, send_file, render_template_string
 from datetime import datetime
 import os
-import sqlite3
-from pathlib import Path
 import base64
 
 app = Flask(__name__)
 
-# Base de datos SQLite (persistente en Railway)
-DB_PATH = os.environ.get('DB_PATH', 'tracking.db')
+# Detectar si usamos PostgreSQL (Render) o SQLite (local)
+DATABASE_URL = os.environ.get('DATABASE_URL')
+USE_POSTGRES = DATABASE_URL is not None
 
-# Puerto configurable (Railway usa PORT env variable)
+if USE_POSTGRES:
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    print("✅ Usando PostgreSQL (datos persistentes)")
+else:
+    import sqlite3
+    DB_PATH = 'tracking.db'
+    print("⚠️  Usando SQLite (datos se perderán al reiniciar)")
+
+# Puerto configurable (Render usa PORT env variable)
 PORT = int(os.environ.get('PORT', 8888))
 
 # Crear pixel transparente 1x1
@@ -31,22 +39,47 @@ if not os.path.exists(PIXEL_PATH):
     with open(PIXEL_PATH, "wb") as f:
         f.write(pixel_data)
 
+def get_db_connection():
+    """Obtener conexión a base de datos (PostgreSQL o SQLite)"""
+    if USE_POSTGRES:
+        return psycopg2.connect(DATABASE_URL)
+    else:
+        return sqlite3.connect(DB_PATH)
+
 def init_db():
-    """Inicializar base de datos SQLite"""
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS tracking (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            tracking_id TEXT NOT NULL,
-            timestamp TEXT NOT NULL,
-            ip_address TEXT,
-            user_agent TEXT,
-            referer TEXT
-        )
-    ''')
-    conn.commit()
-    conn.close()
+    """Inicializar base de datos"""
+    if USE_POSTGRES:
+        conn = psycopg2.connect(DATABASE_URL)
+        c = conn.cursor()
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS tracking (
+                id SERIAL PRIMARY KEY,
+                tracking_id TEXT NOT NULL,
+                timestamp TIMESTAMP NOT NULL,
+                ip_address TEXT,
+                user_agent TEXT,
+                referer TEXT
+            )
+        ''')
+        conn.commit()
+        conn.close()
+        print("✅ Tabla PostgreSQL creada/verificada")
+    else:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute('''
+            CREATE TABLE IF NOT EXISTS tracking (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tracking_id TEXT NOT NULL,
+                timestamp TEXT NOT NULL,
+                ip_address TEXT,
+                user_agent TEXT,
+                referer TEXT
+            )
+        ''')
+        conn.commit()
+        conn.close()
+        print("✅ Tabla SQLite creada/verificada")
 
 # Inicializar DB al arrancar
 init_db()
@@ -54,18 +87,26 @@ init_db()
 @app.route('/track/<tracking_id>')
 def track(tracking_id):
     """Endpoint de tracking - sirve pixel y registra apertura"""
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    timestamp = datetime.now()
     ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
     user_agent = request.headers.get('User-Agent', 'Unknown')
     referer = request.headers.get('Referer', 'None')
 
     # Registrar en base de datos
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     c = conn.cursor()
-    c.execute('''
-        INSERT INTO tracking (tracking_id, timestamp, ip_address, user_agent, referer)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (tracking_id, timestamp, ip_address, user_agent, referer))
+
+    if USE_POSTGRES:
+        c.execute('''
+            INSERT INTO tracking (tracking_id, timestamp, ip_address, user_agent, referer)
+            VALUES (%s, %s, %s, %s, %s)
+        ''', (tracking_id, timestamp, ip_address, user_agent, referer))
+    else:
+        c.execute('''
+            INSERT INTO tracking (tracking_id, timestamp, ip_address, user_agent, referer)
+            VALUES (?, ?, ?, ?, ?)
+        ''', (tracking_id, timestamp.strftime("%Y-%m-%d %H:%M:%S"), ip_address, user_agent, referer))
+
     conn.commit()
     conn.close()
 
@@ -75,19 +116,24 @@ def track(tracking_id):
 @app.route('/stats')
 def stats():
     """Ver estadísticas de aperturas"""
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
+    conn = get_db_connection()
 
-    # Obtener todos los trackings
-    c.execute('SELECT tracking_id, timestamp, ip_address, user_agent FROM tracking ORDER BY timestamp DESC')
-    rows = c.fetchall()
+    if USE_POSTGRES:
+        c = conn.cursor(cursor_factory=RealDictCursor)
+        c.execute('SELECT tracking_id, timestamp, ip_address, user_agent FROM tracking ORDER BY timestamp DESC')
+        rows = c.fetchall()
 
-    # Contar únicos
-    c.execute('SELECT COUNT(DISTINCT tracking_id) FROM tracking')
-    unique_count = c.fetchone()[0]
+        c.execute('SELECT COUNT(DISTINCT tracking_id) FROM tracking')
+        unique_count = c.fetchone()['count']
+    else:
+        c = conn.cursor()
+        c.execute('SELECT tracking_id, timestamp, ip_address, user_agent FROM tracking ORDER BY timestamp DESC')
+        rows = c.fetchall()
+
+        c.execute('SELECT COUNT(DISTINCT tracking_id) FROM tracking')
+        unique_count = c.fetchone()[0]
 
     total_count = len(rows)
-
     conn.close()
 
     html = f"""
@@ -114,6 +160,15 @@ def stats():
                 margin-bottom: 30px;
                 font-size: 32px;
                 text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            }}
+            .db-status {{
+                background: {'#10b981' if USE_POSTGRES else '#f59e0b'};
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                display: inline-block;
+                margin-bottom: 20px;
+                font-weight: bold;
             }}
             .summary {{
                 background: white;
@@ -209,6 +264,10 @@ def stats():
         <div class="container">
             <h1>📊 Email Tracking Dashboard</h1>
 
+            <div class="db-status">
+                {'🟢 PostgreSQL - Datos Persistentes' if USE_POSTGRES else '⚠️ SQLite - Datos Temporales (configurar PostgreSQL)'}
+            </div>
+
             <button class="refresh-btn" onclick="location.reload()">🔄 Actualizar</button>
 
             <div class="summary">
@@ -241,7 +300,14 @@ def stats():
 
     if rows:
         for row in rows:
-            tracking_id, timestamp, ip_address, user_agent = row
+            if USE_POSTGRES:
+                tracking_id = row['tracking_id']
+                timestamp = row['timestamp']
+                ip_address = row['ip_address']
+                user_agent = row['user_agent']
+            else:
+                tracking_id, timestamp, ip_address, user_agent = row
+
             user_agent_short = user_agent[:80] + "..." if len(user_agent) > 80 else user_agent
             html += f"""
                 <tr>
@@ -270,7 +336,8 @@ def stats():
 @app.route('/')
 def index():
     """Página de inicio"""
-    return """
+    db_status = "PostgreSQL ✅" if USE_POSTGRES else "SQLite ⚠️"
+    return f"""
     <!DOCTYPE html>
     <html>
     <head>
@@ -333,7 +400,7 @@ def index():
     <body>
         <div class="card">
             <h1>✅ Email Tracking Server</h1>
-            <div class="status">🟢 Servidor Activo</div>
+            <div class="status">🟢 Servidor Activo - {db_status}</div>
 
             <h3>Endpoints Disponibles:</h3>
             <ul>
@@ -346,7 +413,7 @@ def index():
             <p style="color: #6b7280; font-size: 14px;">
                 <strong>Uso:</strong> Incluir en emails HTML:<br>
                 <code style="display: block; margin-top: 10px;">
-                &lt;img src="https://TU-URL.railway.app/track/ID_UNICO" width="1" height="1" /&gt;
+                &lt;img src="https://TU-URL.onrender.com/track/ID_UNICO" width="1" height="1" /&gt;
                 </code>
             </p>
         </div>
@@ -356,16 +423,17 @@ def index():
 
 @app.route('/health')
 def health():
-    """Health check para Railway"""
-    return {'status': 'ok', 'service': 'email-tracking'}
+    """Health check para Render"""
+    return {'status': 'ok', 'service': 'email-tracking', 'database': 'postgresql' if USE_POSTGRES else 'sqlite'}
 
 if __name__ == '__main__':
+    db_type = "PostgreSQL (persistente)" if USE_POSTGRES else "SQLite (temporal)"
     print(f"""
 ╔═══════════════════════════════════════════════════════════════════╗
-║   📊 EMAIL TRACKING SERVER - RAILWAY                              ║
+║   📊 EMAIL TRACKING SERVER - RENDER                               ║
 ║                                                                   ║
 ║   ✅ Puerto: {PORT}
-║   ✅ Base de datos: {DB_PATH}
+║   ✅ Base de datos: {db_type}
 ║   ✅ Endpoints: /track/<id>, /stats, /health                      ║
 ╚═══════════════════════════════════════════════════════════════════╝
     """)
