@@ -438,3 +438,10 @@ if __name__ == '__main__':
 ╚═══════════════════════════════════════════════════════════════════╝
     """)
     app.run(host='0.0.0.0', port=PORT, debug=False)
+
+# Rutas para servir logos
+@app.route('/static/<path:filename>')
+def serve_static(filename):
+    """Servir archivos estáticos (logos)"""
+    from flask import send_from_directory
+    return send_from_directory('static', filename)
