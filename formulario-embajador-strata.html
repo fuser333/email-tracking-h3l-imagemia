@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formulario Embajador Strata</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #3B82F6 0%, #A855F7 50%, #DB2777 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+            animation: slideUp 0.5s ease-out;
+        }
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo h1 {
+            font-size: 48px;
+            font-weight: 800;
+            background: linear-gradient(to right, #3B82F6, #A855F7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -1px;
+        }
+        .logo p {
+            color: #666;
+            font-size: 14px;
+            margin-top: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+        h2 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+        .highlight-box {
+            background: linear-gradient(135deg, #A855F7, #DB2777);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .highlight-box h3 {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        .highlight-box p {
+            font-size: 32px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .highlight-box small {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        label .required {
+            color: #DB2777;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #3B82F6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        .checkbox-group {
+            display: flex;
+            align-items: start;
+            gap: 12px;
+            margin-top: 20px;
+            padding: 16px;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin-top: 2px;
+            cursor: pointer;
+        }
+        .checkbox-group label {
+            margin: 0;
+            font-weight: 400;
+            font-size: 13px;
+            color: #666;
+            line-height: 1.6;
+        }
+        button {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #F97316, #DB2777);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(249, 115, 22, 0.3);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .success {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        .success svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+        }
+        .success h3 {
+            color: #059669;
+            font-size: 24px;
+            margin-bottom: 12px;
+        }
+        .success p {
+            color: #666;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>STRATA</h1>
+            <p>Programa Embajadores</p>
+        </div>
+
+        <div id="formulario">
+            <h2>¡Felicidades! 🎉</h2>
+            <p class="subtitle">
+                Has sido seleccionado para ser <strong>Embajador Oficial de Strata</strong>.
+                Completa tus datos para activar tu cuenta gratuita.
+            </p>
+
+            <div class="highlight-box">
+                <h3>🎁 Tu Beneficio como Embajador</h3>
+                <p>Plan Base GRATIS</p>
+                <small>Valor: $239.88/año • Acceso completo a Strata</small>
+            </div>
+
+            <form id="embajadorForm">
+                <div class="form-group">
+                    <label>Nombre completo <span class="required">*</span></label>
+                    <input type="text" id="nombre" name="nombre" required placeholder="Ej: Ing. Carlos Mendoza García">
+                </div>
+
+                <div class="form-group">
+                    <label>Email <span class="required">*</span></label>
+                    <input type="email" id="email" name="email" required placeholder="tu@email.com">
+                </div>
+
+                <div class="form-group">
+                    <label>Teléfono / WhatsApp <span class="required">*</span></label>
+                    <input type="tel" id="telefono" name="telefono" required placeholder="+593 99 123 4567">
+                </div>
+
+                <div class="form-group">
+                    <label>Cargo / Posición <span class="required">*</span></label>
+                    <select id="cargo" name="cargo" required>
+                        <option value="">Selecciona...</option>
+                        <option value="presidente">Presidente</option>
+                        <option value="vicepresidente">Vicepresidente</option>
+                        <option value="director">Director/a</option>
+                        <option value="gerente">Gerente General</option>
+                        <option value="secretario">Secretario/a</option>
+                        <option value="tesorero">Tesorero/a</option>
+                        <option value="vocal">Vocal</option>
+                        <option value="otro">Otro cargo directivo</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Organización <span class="required">*</span></label>
+                    <input type="text" id="organizacion" name="organizacion" required placeholder="Ej: Colegio de Ingenieros Civiles de Pichincha">
+                </div>
+
+                <div class="form-group">
+                    <label>Tipo de organización <span class="required">*</span></label>
+                    <select id="tipo_org" name="tipo_org" required>
+                        <option value="">Selecciona...</option>
+                        <option value="colegio">Colegio Profesional</option>
+                        <option value="camara">Cámara de Comercio/Construcción</option>
+                        <option value="asociacion">Asociación Gremial</option>
+                        <option value="universidad">Universidad</option>
+                        <option value="empresa">Empresa Privada</option>
+                        <option value="otro">Otro</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Profesión / Sector <span class="required">*</span></label>
+                    <input type="text" id="profesion" name="profesion" required placeholder="Ej: Ingeniería Civil, Derecho, Medicina">
+                </div>
+
+                <div class="form-group">
+                    <label>Número de miembros/empleados aproximado</label>
+                    <input type="number" id="num_miembros" name="num_miembros" placeholder="Ej: 250" min="1">
+                </div>
+
+                <div class="form-group">
+                    <label>Ciudad</label>
+                    <input type="text" id="ciudad" name="ciudad" placeholder="Ej: Quito">
+                </div>
+
+                <div class="form-group">
+                    <label>¿Cómo planeas promover Strata entre tus miembros?</label>
+                    <textarea id="plan_promocion" name="plan_promocion" placeholder="Ej: Email a todos los agremiados, presentación en asamblea mensual, etc."></textarea>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="acepto" name="acepto" required>
+                    <label for="acepto">
+                        Acepto ser <strong>Embajador Oficial de Strata</strong> y comprometerme a promover la plataforma entre los miembros de mi organización. Entiendo que recibiré el Plan Base gratuito ($19.99/mes) mientras mantenga mi rol activo como embajador.
+                    </label>
+                </div>
+
+                <button type="submit">🚀 Activar Mi Cuenta de Embajador</button>
+            </form>
+        </div>
+
+        <div id="success" class="success">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M8 12l2 2 4-4"/>
+            </svg>
+            <h3>¡Solicitud Enviada!</h3>
+            <p>
+                Gracias por unirte al programa de embajadores Strata.<br><br>
+                Nuestro equipo revisará tu solicitud y te contactará en las próximas 24-48 horas para activar tu cuenta gratuita.<br><br>
+                <strong>Revisa tu email</strong> (incluye spam) para más información.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('embajadorForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData);
+            
+            // Agregar timestamp y tracking
+            data.timestamp = new Date().toISOString();
+            data.tracking_id = new URLSearchParams(window.location.search).get('id') || 'direct';
+            
+            // Mostrar loading
+            const button = this.querySelector('button');
+            const originalText = button.textContent;
+            button.textContent = '⏳ Enviando...';
+            button.disabled = true;
+            
+            try {
+                // Enviar a Google Sheets / Webhook (simular por ahora)
+                console.log('Datos embajador:', data);
+                
+                // Simular delay
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Mostrar éxito
+                document.getElementById('formulario').style.display = 'none';
+                document.getElementById('success').style.display = 'block';
+                
+                // Opcional: Enviar a servidor real
+                // await fetch('https://tu-webhook.com/embajador', {
+                //     method: 'POST',
+                //     headers: {'Content-Type': 'application/json'},
+                //     body: JSON.stringify(data)
+                // });
+                
+            } catch (error) {
+                alert('Hubo un error. Por favor intenta nuevamente o contacta a soporte@strata.h3l.ai');
+                button.textContent = originalText;
+                button.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
